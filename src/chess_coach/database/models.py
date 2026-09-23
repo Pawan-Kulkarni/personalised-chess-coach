@@ -1,5 +1,5 @@
 from datetime import date
-
+from sqlalchemy import JSON
 from sqlalchemy import ForeignKey, Text, Float, Integer, String, Date
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -32,9 +32,16 @@ class Game(Base):
         nullable=True
     )
 
+    pgn_hash: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        nullable=False,
+    )
+
     positions: Mapped[list["Position"]] = relationship(
         back_populates="game"
     )
+    
 
 
 class Position(Base):
@@ -86,3 +93,21 @@ class EngineAnalysis(Base):
     position: Mapped["Position"] = relationship(
     back_populates="engine_analysis"
 )
+    
+    
+    
+class MoveAnalysis(Base):
+    __tablename__ = "move_analysis"
+
+    analysis_id = mapped_column(Integer, primary_key=True)
+    position_id = mapped_column(
+        ForeignKey("positions.position_id"),
+        nullable=False,
+        unique=True,
+    )
+
+    player = mapped_column(String(10), nullable=False)
+    evaluation_loss = mapped_column(Float, nullable=False)
+    classification = mapped_column(String(20), nullable=False)
+    tactical_analysis = mapped_column(JSON, nullable=False, default=dict)
+    position = relationship("Position")
