@@ -35,7 +35,7 @@ def chess_coach_ingestion():
         )
 
         # 4. Parse PGN
-        pgn_path = "data/raw/test_game.pgn"
+        pgn_path = "data/raw/test_game_2.pgn"
         games = parse_pgn_file(pgn_path)
 
         # 5. Load games into PostgreSQL

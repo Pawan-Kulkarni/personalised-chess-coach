@@ -4,21 +4,22 @@ from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from sqlalchemy.orm import sessionmaker
 
+from chess_coach.chess.pgn import parse_pgn_file
 from chess_coach.database.models import Position, EngineAnalysis
-from chess_coach.database.queries import get_unanalyzed_positions
-from chess_coach.engine.stockfish import analyze_position
+from chess_coach.database.queries import save_move_analysis
+from chess_coach.analysis.move_analysis import analyze_game_moves
 
 
 @dag(
-    dag_id="chess_coach_analysis",
+    dag_id="chess_coach_move_analysis",
     start_date=datetime(2026, 9, 23),
     schedule=None,
     catchup=False,
 )
-def chess_coach_analysis():
+def chess_coach_move_analysis():
 
     @task
-    def find_unanalyzed_positions():
+    def analyze_moves():
 
         hook = PostgresHook(
             postgres_conn_id="chess_coach_postgres"
@@ -32,76 +33,83 @@ def chess_coach_analysis():
             autocommit=False,
         )
 
+        pgn_path = "data/raw/test_game.pgn"
+
+        games = parse_pgn_file(pgn_path)
+        print(f"PGN path: {pgn_path}")
+        print(f"Games returned: {games}")
+        print(f"Games type: {type(games)}")
         with SessionLocal() as session:
 
-            positions = get_unanalyzed_positions(session)
+            for game in games:
 
-            position_data = [
-                {
-                    "position_id": position.position_id,
-                    "fen": position.fen,
-                }
-                for position in positions
-            ]
+                # Find the corresponding database game.
+                # For now we use the PGN hash to identify it.
+                import hashlib
 
-        print(
-            f"Found {len(position_data)} "
-            "unanalyzed positions"
-        )
+                pgn_text = str(game)
 
-        return position_data
+                pgn_hash = hashlib.sha256(
+                    pgn_text.encode("utf-8")
+                ).hexdigest()
 
-    @task
-    def analyze_position_task(position_data):
+                from chess_coach.database.models import Game
 
-        position_id = position_data["position_id"]
-        fen = position_data["fen"]
+                db_game = (
+                    session.query(Game)
+                    .filter_by(pgn_hash=pgn_hash)
+                    .first()
+                )
 
-        print(f"Analyzing position {position_id}")
+                if db_game is None:
+                    print(
+                        f"Game not found in database: {pgn_hash}"
+                    )
+                    continue
 
-        analysis = analyze_position(
-            fen=fen,
-            depth=20,
-        )
+                game_id = db_game.game_id
 
-        hook = PostgresHook(
-            postgres_conn_id="chess_coach_postgres"
-        )
+                positions = (
+                    session.query(Position)
+                    .filter_by(game_id=game_id)
+                    .order_by(Position.ply)
+                    .all()
+                )
 
-        engine = hook.get_sqlalchemy_engine()
+                analyses = (
+                    session.query(EngineAnalysis)
+                    .join(Position)
+                    .filter(Position.game_id == game_id)
+                    .order_by(Position.ply)
+                    .all()
+                )
 
-        SessionLocal = sessionmaker(
-            bind=engine,
-            autoflush=False,
-            autocommit=False,
-        )
+                print(
+                    f"Analyzing game {game_id}: "
+                    f"{len(positions)} positions, "
+                    f"{len(analyses)} engine analyses"
+                )
 
-        with SessionLocal() as session:
+                results = analyze_game_moves(
+                    game=game,
+                    positions=positions,
+                    analyses=analyses,
+                )
 
-            engine_analysis = EngineAnalysis(
-                position_id=position_id,
-                evaluation=analysis["evaluation"],
-                best_move=analysis["best_move"],
-                depth=analysis["depth"],
-                principal_variation=" ".join(
-                    analysis["principal_variation"]
-                ),
-            )
+                for result in results:
+                    save_move_analysis(
+                        session,
+                        result,
+                    )
 
-            session.add(engine_analysis)
-            session.commit()
+                session.commit()
 
-        print(
-            f"Finished position {position_id}: "
-            f"evaluation={analysis['evaluation']}, "
-            f"best_move={analysis['best_move']}"
-        )
+                print(
+                    f"Saved {len(results)} move analyses "
+                    f"for game {game_id}"
+                )
 
-    positions = find_unanalyzed_positions()
-
-    analyze_position_task.expand(
-        position_data=positions
-    )
+    analyze_moves()
 
 
-chess_coach_analysis()
+chess_coach_move_analysis()
