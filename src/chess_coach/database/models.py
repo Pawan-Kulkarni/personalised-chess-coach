@@ -2,7 +2,7 @@ from datetime import date
 from sqlalchemy import JSON
 from sqlalchemy import ForeignKey, Text, Float, Integer, String, Date
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
+from sqlalchemy import UniqueConstraint
 
 class Base(DeclarativeBase):
     pass
@@ -42,6 +42,25 @@ class Game(Base):
         back_populates="game"
     )
     
+    white_player_id = mapped_column(
+        ForeignKey("players.player_id"),
+        nullable=True,
+    )
+
+    black_player_id = mapped_column(
+        ForeignKey("players.player_id"),
+        nullable=True,
+    )
+    
+    white_player_ref = relationship(
+    "Player",
+    foreign_keys=[white_player_id],
+    )
+
+    black_player_ref = relationship(
+        "Player",
+        foreign_keys=[black_player_id],
+    )
 
 
 class Position(Base):
@@ -111,3 +130,45 @@ class MoveAnalysis(Base):
     classification = mapped_column(String(20), nullable=False)
     tactical_analysis = mapped_column(JSON, nullable=False, default=dict)
     position = relationship("Position")
+    
+class Player(Base):
+    __tablename__ = "players"
+
+    player_id = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String(100), nullable=False, unique=True)
+
+    accounts = relationship(
+        "PlayerAccount",
+        back_populates="player",
+        cascade="all, delete-orphan",
+    )
+
+
+class PlayerAccount(Base):
+    __tablename__ = "player_accounts"
+
+    account_id = mapped_column(Integer, primary_key=True)
+
+    player_id = mapped_column(
+        ForeignKey("players.player_id"),
+        nullable=False,
+    )
+
+    platform = mapped_column(
+        String(30),
+        nullable=False,
+    )
+
+    username = mapped_column(
+        String(100),
+        nullable=False,
+    )
+    
+    __table_args__ = (
+        UniqueConstraint("platform", "username"),
+    )
+
+    player = relationship(
+        "Player",
+        back_populates="accounts",
+    )

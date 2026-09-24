@@ -2,7 +2,7 @@ from chess_coach.chess.pgn import parse_pgn_file
 from chess_coach.database.connection import get_session
 from chess_coach.database.models import Position, EngineAnalysis
 from chess_coach.database.queries import save_move_analysis
-from chess_coach.analysis.blunders import analyze_game_moves
+from chess_coach.analysis.move_analysis import analyze_game_moves
 
 
 PGN_PATH = "data/raw/test_game.pgn"

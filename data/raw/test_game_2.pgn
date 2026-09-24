@@ -1,0 +1,18 @@
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2026.09.22"]
+[Round "?"]
+[White "MasterJoseph03"]
+[Black "split_rooks"]
+[Result "0-1"]
+[TimeControl "600"]
+[WhiteElo "2199"]
+[BlackElo "2204"]
+[Termination "split_rooks won by resignation"]
+[ECO "B07"]
+[EndTime "9:56:12 GMT+0000"]
+[Link "https://www.chess.com/game/live/184197476784?username=split_rooks&move=0"]
+
+1. e4 d6 2. Nc3 Nf6 3. f4 Nbd7 4. Nf3 e5 5. fxe5 dxe5 6. Bc4 Be7 7. d3 c6 8. a4
+Qc7 9. O-O h5 10. Nh4 Bc5+ 11. Kh1 Ng4 12. Bxf7+ Kd8 13. Bg5+ Ndf6 14. Bxf6+
+gxf6 15. Qf3 Qxf7 16. h3 Bd7 17. hxg4 hxg4 18. Qg3 Qh5 0-1
