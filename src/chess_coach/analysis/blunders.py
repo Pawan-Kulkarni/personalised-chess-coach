@@ -1,4 +1,5 @@
 from chess_coach.analysis.tactics import analyze_move_tactics
+from chess_coach.analysis.positional import analyze_pawn_structure_change
 
 def classify_move(
     eval_before: float,
@@ -68,6 +69,7 @@ def analyze_move(
     eval_before,
     eval_after,
     ply,
+    player_color,
 ):
     player = "White" if ply % 2 == 1 else "Black"
 
@@ -81,20 +83,31 @@ def analyze_move(
         board_before,
         move,
     )
+    positional_analysis = analyze_pawn_structure_change(
+    board_before,
+    move,
+    player_color,
+)
 
     return {
-        "ply": ply,
-        "player": player,
-        "move": move.uci(),
-        "eval_before": eval_before,
-        "eval_after": eval_after,
-        "evaluation_loss": result["evaluation_loss"],
-        "classification": result["classification"],
-        "tactical_analysis": tactical_analysis,
-    }
+    "ply": ply,
+    "player": player,
+    "move": move.uci(),
+    "eval_before": eval_before,
+    "eval_after": eval_after,
+    "evaluation_loss": result["evaluation_loss"],
+    "classification": result["classification"],
+    "tactical_analysis": tactical_analysis,
+    "positional_analysis": positional_analysis,
+}
     
     
-def analyze_game_moves(game, positions, analyses):
+def analyze_game_moves(
+    game,
+    positions,
+    analyses,
+    player_color,
+):
     board = game.board()
     results = []
 
@@ -117,6 +130,7 @@ def analyze_game_moves(game, positions, analyses):
             eval_before=previous_analysis.evaluation,
             eval_after=current_analysis.evaluation,
             ply=ply,
+            player_color=player_color,
         )
 
         result["position_id"] = current_position.position_id
