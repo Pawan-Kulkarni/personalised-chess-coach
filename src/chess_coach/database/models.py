@@ -129,6 +129,11 @@ class MoveAnalysis(Base):
     evaluation_loss = mapped_column(Float, nullable=False)
     classification = mapped_column(String(20), nullable=False)
     tactical_analysis = mapped_column(JSON, nullable=False, default=dict)
+    positional_analysis: Mapped[dict] = mapped_column(
+    JSON,
+    nullable=False,
+    default=dict,
+    )
     position = relationship("Position")
     
 class Player(Base):
