@@ -153,6 +153,9 @@ def save_move_analysis(session, analysis):
         if not existing.tactical_analysis:
             existing.tactical_analysis = analysis["tactical_analysis"]
 
+        if not existing.positional_analysis:
+            existing.positional_analysis = analysis["positional_analysis"]
+
         return existing
 
     move_analysis = MoveAnalysis(
@@ -161,6 +164,7 @@ def save_move_analysis(session, analysis):
         evaluation_loss=analysis["evaluation_loss"],
         classification=analysis["classification"],
         tactical_analysis=analysis["tactical_analysis"],
+        positional_analysis=analysis["positional_analysis"],
     )
 
     session.add(move_analysis)

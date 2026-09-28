@@ -1,7 +1,7 @@
 from chess_coach.analysis.blunders import analyze_move
 
 
-def analyze_game_moves(game, positions, analyses):
+def analyze_game_moves(game, positions, analyses, player_color):
     if len(positions) != len(analyses):
         raise ValueError(
             f"Mismatch: {len(positions)} positions but "
@@ -30,6 +30,7 @@ def analyze_game_moves(game, positions, analyses):
             eval_before=previous_analysis.evaluation,
             eval_after=current_analysis.evaluation,
             ply=ply,
+            player_color=player_color,
         )
 
         result["position_id"] = current_position.position_id

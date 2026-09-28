@@ -39,7 +39,7 @@ with get_session() as session:
     )
 
     print(f"Analyzed {len(results)} moves")
-
+    print(results)
     for result in results:
         save_move_analysis(session, result)
 

@@ -1,3 +1,35 @@
+'''Purpose:
+Ingests chess games from PGN files into PostgreSQL and creates the position-level records required for downstream analysis.
+
+Workflow:
+
+Reads chess games from the configured raw PGN file.
+Extracts game metadata such as:
+White player
+Black player
+Result
+Date
+Event
+PGN
+Generates a SHA-256 hash of each PGN to uniquely identify games and make the ingestion process idempotent.
+Resolves the White and Black players to their canonical player_id values using the configured player accounts.
+Creates a record in the games table if the game has not already been ingested.
+Replays the game's moves using python-chess.
+Creates a positions record for each position after every move, storing:
+Ply
+Move number
+Move in UCI format
+Move in SAN format
+FEN
+Updates existing games with resolved player identities when the game has already been ingested.
+
+Output:
+The DAG populates the games and positions tables, providing the structured game and position data required by downstream Stockfish and move-analysis pipelines.
+
+Important:
+This DAG does not perform chess-engine evaluation or tactical/positional analysis. Its responsibility is to transform raw PGN games into structured database records that can be consumed by subsequent analysis DAGs.'''
+
+
 from datetime import datetime
 
 from airflow.sdk import dag, task
