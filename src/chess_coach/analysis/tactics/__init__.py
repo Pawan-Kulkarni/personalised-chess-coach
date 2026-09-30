@@ -1,0 +1,1 @@
+from .analyzer import analyze_move_tactics, analyze_game_tactics
