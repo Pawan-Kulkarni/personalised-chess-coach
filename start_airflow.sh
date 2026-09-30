@@ -8,7 +8,8 @@ export AIRFLOW_HOME="$HOME/airflow"
 export AIRFLOW__CORE__DAGS_FOLDER="$PWD/airflow/dags"
 export PYTHONPATH="$PWD/src:$PYTHONPATH"
 export AIRFLOW__API_AUTH__JWT_SECRET="chess-coach-local-secret-2026"
-export AIRFLOW__CORE__LOAD_EXAMPLES="False"pkill -f "airflow"
+export AIRFLOW__CORE__LOAD_EXAMPLES="False"
+pkill -f "airflow"
 
 echo "Starting Airflow..."
 
