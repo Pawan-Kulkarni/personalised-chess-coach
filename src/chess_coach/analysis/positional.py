@@ -6,51 +6,36 @@ def get_pawn_structure(board: chess.Board):
     """
     Analyze the pawn structure for both sides.
 
-    Currently detects:
+    Detects:
         - doubled pawns
         - isolated pawns
-
-    We will add backward pawns separately once we define
-    the chess condition more precisely.
+        - pawn islands
+        - passed pawns
+        - backward pawns
     """
 
     # This is the structure that we will return.
-    #
-    # Example:
-    #
-    # {
-    #     "white": {
-    #         "doubled": [...],
-    #         "isolated": [...],
-    #         "pawn_islands": [...],
-    #     },
-    #     "black": {
-    #         "doubled": [...],
-    #         "isolated": [...],
-    #         "pawn_islands": [...],
-    #     }
-    # }
-
     structure = {
-    "white": {
-        "doubled": [],
-        "isolated": [],
-        "pawn_islands": [],
-        "passed": [],
-    },
-    "black": {
-        "doubled": [],
-        "isolated": [],
-        "pawn_islands": [],
-        "passed": [],
-        
-    },
-}
+        "white": {
+            "doubled": [],
+            "isolated": [],
+            "pawn_islands": [],
+            "passed": [],
+            "backward": [],
+        },
+        "black": {
+            "doubled": [],
+            "isolated": [],
+            "pawn_islands": [],
+            "passed": [],
+            "backward": [],
+        },
+    }
 
     # Analyze White and Black separately.
     for color in [chess.WHITE, chess.BLACK]:
 
-        # Convert True/False into something easier to read.
+        # Convert True/False into "white" / "black".
         color_name = (
             "white"
             if color == chess.WHITE
@@ -58,35 +43,13 @@ def get_pawn_structure(board: chess.Board):
         )
 
         # Get all pawns belonging to this color.
-        #
-        # Example:
-        # White pawns might be:
-        # a2, b3, b4, e4, f2, g2, h2
-        
         pawn_squares = list(
             board.pieces(chess.PAWN, color)
         )
-        
 
         # -------------------------------------------------
         # Group pawns by file
         # -------------------------------------------------
-        #
-        # A chess file is:
-        #
-        # a b c d e f g h
-        #
-        # Internally python-chess represents them as:
-        #
-        # 0 1 2 3 4 5 6 7
-        #
-        # So something like:
-        #
-        # b3 -> file 1
-        # b4 -> file 1
-        #
-        # This is useful because two pawns on the same
-        # file are doubled pawns.
 
         pawns_by_file = {}
 
@@ -95,28 +58,19 @@ def get_pawn_structure(board: chess.Board):
             # Get the file number of this pawn.
             file = chess.square_file(square)
 
-            # If we haven't seen this file before,
-            # create an empty list for it.
+            # Create an empty list if this is the first
+            # pawn we have seen on this file.
             pawns_by_file.setdefault(
                 file,
                 [],
             )
 
-            # Add the pawn's square to that file.
+            # Add the pawn to its file.
             pawns_by_file[file].append(square)
 
         # -------------------------------------------------
         # Detect doubled pawns
         # -------------------------------------------------
-        #
-        # Example:
-        #
-        #     b4
-        #     b3
-        #
-        # Two friendly pawns on the same file.
-        #
-        # That is a doubled pawn structure.
 
         for file, pawns in pawns_by_file.items():
 
@@ -125,13 +79,7 @@ def get_pawn_structure(board: chess.Board):
             if len(pawns) > 1:
 
                 structure[color_name]["doubled"].append({
-                    # Convert file number back to:
-                    # 0 -> a
-                    # 1 -> b
-                    # etc.
                     "file": chess.FILE_NAMES[file],
-
-                    # Store the actual squares.
                     "squares": [
                         chess.square_name(square)
                         for square in pawns
@@ -141,22 +89,6 @@ def get_pawn_structure(board: chess.Board):
         # -------------------------------------------------
         # Detect isolated pawns
         # -------------------------------------------------
-        #
-        # A pawn is isolated if it has:
-        #
-        # NO friendly pawn
-        # on the adjacent file.
-        #
-        # Example:
-        #
-        # White pawn on e4
-        #
-        # If White has no pawn on:
-        #
-        # d-file
-        # f-file
-        #
-        # then e4 is isolated.
 
         for file, pawns in pawns_by_file.items():
 
@@ -164,11 +96,9 @@ def get_pawn_structure(board: chess.Board):
             # the current file.
             neighboring_files = []
 
-            # File to the left.
             if file > 0:
                 neighboring_files.append(file - 1)
 
-            # File to the right.
             if file < 7:
                 neighboring_files.append(file + 1)
 
@@ -195,66 +125,27 @@ def get_pawn_structure(board: chess.Board):
         # -------------------------------------------------
         # Detect pawn islands
         # -------------------------------------------------
-        #
-        # A pawn island is a group of pawns on
-        # consecutive files.
-        #
-        # Example:
-        #
-        #     a b c     f g h
-        #
-        #     █ █ █     █ █ █
-        #
-        # This gives us two pawn islands:
-        #
-        #     [a,b,c]
-        #     [f,g,h]
-        #
-        # We only care about which files contain
-        # pawns, not how many pawns are on each file.
 
-        # Get all files that contain at least one pawn.
-        #
-        # Example:
-        #
-        #     pawns on a2, b2, b3, c2, f2
-        #
-        # gives:
-        #
-        #     pawn_files = [a, b, c, f]
-        #
+        # Get all files containing at least one pawn.
         pawn_files = sorted(pawns_by_file.keys())
 
-        # This will temporarily hold the files
-        # belonging to the current island.
+        # Temporarily hold the current island.
         current_island = []
 
         for file in pawn_files:
 
-            # If this is the first file we are looking at,
-            # start a new island.
+            # Start the first island.
             if not current_island:
                 current_island.append(file)
                 continue
 
-            # If this file is immediately next to the
-            # previous file, it belongs to the same island.
-            #
-            # Example:
-            #
-            #     b = 1
-            #     c = 2
-            #
-            # 2 == 1 + 1
-            #
+            # Consecutive files belong to the same island.
             if file == current_island[-1] + 1:
                 current_island.append(file)
 
             else:
-                # There is a gap between the current file
-                # and the previous file.
-                #
-                # Therefore the current island is finished.
+                # We found a gap, so the current island
+                # is finished.
                 structure[color_name]["pawn_islands"].append({
                     "files": [
                         chess.FILE_NAMES[f]
@@ -265,10 +156,7 @@ def get_pawn_structure(board: chess.Board):
                 # Start a new island.
                 current_island = [file]
 
-        # After the loop finishes, we still have one
-        # unfinished island.
-        #
-        # Add it to the structure.
+        # Add the final island.
         if current_island:
 
             structure[color_name]["pawn_islands"].append({
@@ -277,38 +165,11 @@ def get_pawn_structure(board: chess.Board):
                     for f in current_island
                 ],
             })
-                # -------------------------------------------------
+
+        # -------------------------------------------------
         # Detect passed pawns
         # -------------------------------------------------
-        #
-        # A pawn is passed if there are NO enemy pawns
-        # ahead of it on:
-        #
-        #     1. the same file
-        #     2. the file immediately to the left
-        #     3. the file immediately to the right
-        #
-        # We only care about enemy PAWNS here.
-        #
-        # Enemy pieces such as rooks, bishops, knights,
-        # queens, or kings do NOT prevent a pawn from
-        # being a passed pawn.
-        #
-        # Example for White:
-        #
-        #             Black pawns
-        #             ↓
-        #
-        #        c6  d6  e6
-        #
-        #             ↑
-        #        White pawn d5
-        #
-        # d5 is NOT passed because there is an enemy pawn
-        # on one of the relevant files ahead of it.
-        #
-        # If those black pawns are absent, d5 is passed.
-        
+
         # Get all enemy pawn squares.
         enemy_pawn_squares = board.pieces(
             chess.PAWN,
@@ -321,19 +182,8 @@ def get_pawn_structure(board: chess.Board):
             pawn_file = chess.square_file(pawn_square)
             pawn_rank = chess.square_rank(pawn_square)
 
-            # The pawn can be blocked by the board edge.
-            #
-            # White moves toward increasing ranks:
-            #
-            #     rank 1 → rank 8
-            #
-            # Black moves toward decreasing ranks:
-            #
-            #     rank 8 → rank 1
-            #
-            # Therefore we only consider enemy pawns
-            # that are AHEAD of the current pawn.
-
+            # Assume the pawn is passed until we find
+            # an enemy pawn that prevents it from being passed.
             is_passed = True
 
             for enemy_square in enemy_pawn_squares:
@@ -341,12 +191,7 @@ def get_pawn_structure(board: chess.Board):
                 enemy_file = chess.square_file(enemy_square)
                 enemy_rank = chess.square_rank(enemy_square)
 
-                # Relevant files are:
-                #
-                #     same file
-                #     left adjacent file
-                #     right adjacent file
-                #
+                # Only same or adjacent files matter.
                 file_difference = abs(
                     enemy_file - pawn_file
                 )
@@ -354,14 +199,7 @@ def get_pawn_structure(board: chess.Board):
                 if file_difference > 1:
                     continue
 
-                # Check whether the enemy pawn is ahead.
-                #
-                # White pawn:
-                #     enemy pawn must be on a HIGHER rank.
-                #
-                # Black pawn:
-                #     enemy pawn must be on a LOWER rank.
-
+                # Determine whether the enemy pawn is ahead.
                 if color == chess.WHITE:
                     enemy_is_ahead = enemy_rank > pawn_rank
                 else:
@@ -371,8 +209,8 @@ def get_pawn_structure(board: chess.Board):
                     is_passed = False
                     break
 
-            # If we found no enemy pawn ahead on the
-            # same or adjacent file, this pawn is passed.
+            # No enemy pawn ahead on the same or adjacent
+            # file means this is a passed pawn.
             if is_passed:
 
                 structure[color_name]["passed"].append({
@@ -380,8 +218,171 @@ def get_pawn_structure(board: chess.Board):
                     "square": chess.square_name(pawn_square),
                 })
 
-    return structure
+        # -------------------------------------------------
+        # Detect backward pawns
+        # -------------------------------------------------
+        #
+        # Our definition:
+        #
+        # A pawn can be backward when:
+        #
+        # 1. It has at least one friendly pawn on an
+        #    adjacent file.
+        #
+        # 2. ALL of those adjacent friendly pawns are
+        #    more advanced than the candidate pawn.
+        #
+        # 3. The square directly in front of the candidate
+        #    pawn is controlled by an enemy pawn.
+        #
+        # The "ALL" condition is important.
+        #
+        # Example:
+        #
+        #     e6  f7  g7
+        #
+        # f7 is NOT backward because:
+        #
+        #     e6 -> more advanced
+        #     g7 -> NOT more advanced
+        #
+        # Therefore, g7 prevents f7 from satisfying our
+        # backward-pawn definition.
+        # -------------------------------------------------
 
+        opponent_color = not color
+
+        for square in pawn_squares:
+
+            # These MUST be calculated inside this loop
+            # because they belong to the current candidate pawn.
+            file_index = chess.square_file(square)
+            rank_index = chess.square_rank(square)
+
+            # -------------------------------------------------
+            # Find ALL friendly pawns on adjacent files.
+            # -------------------------------------------------
+
+            neighboring_pawns = []
+
+            for adjacent_file in [
+                file_index - 1,
+                file_index + 1,
+            ]:
+
+                # Ignore files outside the board.
+                if adjacent_file < 0 or adjacent_file > 7:
+                    continue
+
+                # Find friendly pawns on this adjacent file.
+                for neighboring_square in board.pieces(
+                    chess.PAWN,
+                    color,
+                ):
+
+                    if (
+                        chess.square_file(neighboring_square)
+                        != adjacent_file
+                    ):
+                        continue
+
+                    neighboring_pawns.append(
+                        neighboring_square
+                    )
+
+            # A candidate pawn must have at least one
+            # friendly pawn on an adjacent file.
+            if not neighboring_pawns:
+                continue
+
+            # -------------------------------------------------
+            # Check whether ALL adjacent friendly pawns are
+            # more advanced than the candidate pawn.
+            # -------------------------------------------------
+
+            all_neighbors_more_advanced = True
+
+            for neighboring_square in neighboring_pawns:
+
+                neighboring_rank = chess.square_rank(
+                    neighboring_square
+                )
+
+                # White moves toward higher ranks.
+                if color == chess.WHITE:
+
+                    is_more_advanced = (
+                        neighboring_rank > rank_index
+                    )
+
+                # Black moves toward lower ranks.
+                else:
+
+                    is_more_advanced = (
+                        neighboring_rank < rank_index
+                    )
+
+                # If even ONE adjacent friendly pawn is
+                # not more advanced, this pawn is not backward.
+                if not is_more_advanced:
+
+                    all_neighbors_more_advanced = False
+                    break
+
+            if not all_neighbors_more_advanced:
+                continue
+
+            # -------------------------------------------------
+            # Find the square directly in front of the pawn.
+            # -------------------------------------------------
+
+            if color == chess.WHITE:
+
+                front_square = chess.square(
+                    file_index,
+                    rank_index + 1,
+                )
+
+            else:
+
+                front_square = chess.square(
+                    file_index,
+                    rank_index - 1,
+                )
+
+            # Make sure the front square is on the board.
+            if front_square not in chess.SQUARES:
+                continue
+
+            # -------------------------------------------------
+            # Check whether an enemy pawn controls the square
+            # directly in front of our candidate pawn.
+            # -------------------------------------------------
+
+            enemy_pawn_attackers = board.attackers(
+                opponent_color,
+                front_square,
+            )
+
+            has_enemy_pawn_control = any(
+                board.piece_at(attacker) is not None
+                and board.piece_at(attacker).piece_type == chess.PAWN
+                for attacker in enemy_pawn_attackers
+            )
+
+            if not has_enemy_pawn_control:
+                continue
+
+            # -------------------------------------------------
+            # We have found a backward pawn.
+            # -------------------------------------------------
+
+            structure[color_name]["backward"].append({
+                "file": chess.FILE_NAMES[file_index],
+                "square": chess.square_name(square),
+            })
+
+    return structure
 
 def analyze_pawn_structure_change(board_before, move, player_color):
     """
@@ -605,5 +606,47 @@ def analyze_pawn_structure_change(board_before, move, player_color):
                 - pawn_islands_before
             ),
         }
+        # ---------------------------------------------------------
+        # NEW BACKWARD PAWNS
+        # ---------------------------------------------------------
+        #
+        # We only want pawns that became backward because of this move.
+        #
+        # Example:
+        #
+        # Before:
+        #     d4 is NOT backward
+        #
+        # Move happens
+        #
+        # After:
+        #     d4 IS backward
+        #
+        # Therefore:
+        #     d4 -> new_backward
+        #
+        # We compare the pawn's square before and after the move.
+        # ---------------------------------------------------------
+
+        for color in ["white", "black"]:
+
+            backward_before = structure_before[color]["backward"]
+            backward_after = structure_after[color]["backward"]
+
+            before_squares = {
+                pawn["square"]
+                for pawn in backward_before
+            }
+
+            new_backward = [
+                pawn
+                for pawn in backward_after
+                if pawn["square"] not in before_squares
+            ]
+
+            if color == player_color:
+                changes["player"]["new_backward"] = new_backward
+            else:
+                changes["opponent"]["new_backward"] = new_backward
 
     return changes

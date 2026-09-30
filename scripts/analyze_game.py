@@ -1,23 +1,37 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
-from chess_coach.database.connection import engine
+from chess_coach.database.connection import get_session
 from chess_coach.database.models import Position, EngineAnalysis
 from chess_coach.engine.stockfish import analyze_position
 
 
-with Session(engine) as session:
+session = get_session()
 
-    # Get all positions from game 1
+try:
+
+    # Get all positions from game 2
     positions = session.scalars(
         select(Position)
-        .where(Position.game_id == 2)
+        .where(Position.game_id == 1)
         .order_by(Position.position_id)
     ).all()
 
     print(f"Found {len(positions)} positions")
 
     for position in positions:
+
+        # Check if this position is already analyzed
+        existing = session.scalar(
+            select(EngineAnalysis)
+            .where(EngineAnalysis.position_id == position.position_id)
+        )
+
+        if existing:
+            print(
+                f"Position {position.position_id}: "
+                f"already analyzed, skipping"
+            )
+            continue
 
         result = analyze_position(
             position.fen,
@@ -44,4 +58,7 @@ with Session(engine) as session:
 
     session.commit()
 
-print("Engine analysis saved successfully.")
+    print("Engine analysis saved successfully.")
+
+finally:
+    session.close()

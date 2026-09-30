@@ -40,7 +40,7 @@ from chess_coach.analysis.move_analysis import analyze_game_moves
 PLAYER_ID = 1
 
 @dag(
-    dag_id="chess_coach_move_analysis",
+    dag_id="chess_coach_analysis",
     start_date=datetime(2026, 9, 23),
     schedule=None,
     catchup=False,
@@ -62,7 +62,7 @@ def chess_coach_move_analysis():
             autocommit=False,
         )
 
-        pgn_path = "data/raw/test_game.pgn"
+        pgn_path = "data/raw/test_game_2.pgn"
 
         games = parse_pgn_file(pgn_path)
         print(f"PGN path: {pgn_path}")

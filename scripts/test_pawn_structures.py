@@ -208,9 +208,69 @@ print("\n=== Black Passed Pawn Test ===")
 #
 # Therefore d4 should be a passed pawn for Black.
 
+# =========================================================
+# Backward Pawn Test
+# =========================================================
+
+print("\n=== Backward Pawn Test ===")
+
+# White:
+#   c5 = advanced friendly pawn
+#   d4 = candidate backward pawn
+#
+# Black:
+#   e6 = controls d5
+#
+# Therefore d4 should be detected as backward.
+
+board = chess.Board(
+    "4k3/8/4p3/2P5/3P4/8/8/4K3 w - - 0 1"
+)
+
+structure = get_pawn_structure(board)
+
+print("White backward pawns:")
+print(structure["white"]["backward"])
+
 board = chess.Board(
     "4k3/8/8/8/3p4/8/8/8 b - - 0 1"
 )
+
+# =========================================================
+# Non-Backward Pawn Test
+# =========================================================
+
+print("\n=== Non-Backward Pawn Test ===")
+
+# White:
+#   c5 = advanced friendly pawn
+#   d4 = candidate pawn
+#
+# But Black does NOT control d5 with a pawn.
+#
+# Therefore d4 should NOT be backward.
+
+board = chess.Board(
+    "4k3/8/8/2P5/3P4/8/8/4K3 w - - 0 1"
+)
+
+structure = get_pawn_structure(board)
+
+print("White backward pawns:")
+print(structure["white"]["backward"])
+
+
+print("\n=== Current Backward Pawn Test ===")
+
+# Position after 39.Qxh6+
+board = chess.Board(
+    "2rq1r2/1b1nbpk1/p3p2Q/1pp1P2P/6N1/3P1BP1/PPP2P2/R3R1K1 b - - 0 1"
+)
+
+structure = get_pawn_structure(board)
+
+print("Black backward pawns:")
+print(structure["black"]["backward"])
 
 structure = get_pawn_structure(board)
 

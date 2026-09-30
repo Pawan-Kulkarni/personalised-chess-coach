@@ -60,6 +60,7 @@ def detect_mistakes(rows):
             "evaluation_loss": result["evaluation_loss"],
             "classification": result["classification"],
         })
+    return mistakes
 
 
 
@@ -69,37 +70,46 @@ def analyze_move(
     eval_before,
     eval_after,
     ply,
-    player_color,
+    player_color
 ):
+    # Determine which side made this move.
+    #
+    # Odd ply  -> White
+    # Even ply -> Black
     player = "White" if ply % 2 == 1 else "Black"
 
+    # Calculate evaluation loss and classify
+    # the move as good/inaccuracy/mistake/blunder.
     result = classify_move(
         eval_before,
         eval_after,
-        player,
+        player
     )
 
+    # Analyze tactical consequences of the move.
     tactical_analysis = analyze_move_tactics(
         board_before,
-        move,
+        move
     )
+
+    # Analyze positional consequences of the move.
+    #
+    # player_color is the user's color in the game.
+    # The function internally determines the opponent.
     positional_analysis = analyze_pawn_structure_change(
-    board_before,
-    move,
-    player_color,
-)
+        board_before,
+        move,
+        player_color
+    )
 
     return {
-    "ply": ply,
-    "player": player,
-    "move": move.uci(),
-    "eval_before": eval_before,
-    "eval_after": eval_after,
-    "evaluation_loss": result["evaluation_loss"],
-    "classification": result["classification"],
-    "tactical_analysis": tactical_analysis,
-    "positional_analysis": positional_analysis,
-}
+        "position_id": None,
+        "player": player,
+        "evaluation_loss": result["evaluation_loss"],
+        "classification": result["classification"],
+        "tactical_analysis": tactical_analysis,
+        "positional_analysis": positional_analysis,
+    }
     
     
 def analyze_game_moves(
