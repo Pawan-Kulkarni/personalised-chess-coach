@@ -31,3 +31,5 @@ data/embeddings/
 
 # Logs
 *.log
+
+airflow/*.json.generated
