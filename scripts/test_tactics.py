@@ -1,6 +1,6 @@
 import chess
 
-from src.chess_coach.analysis.tactics import analyze_move_tactics
+from chess_coach.analysis.tactics import analyze_move_tactics
 
 
 board = chess.Board()
